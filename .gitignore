@@ -1,0 +1,22 @@
+# Environment
+.env
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Data & indexes (generated at runtime)
+data/parents/*
+!data/parents/.gitkeep
+vector_store/chroma/*
+!vector_store/chroma/.gitkeep
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
