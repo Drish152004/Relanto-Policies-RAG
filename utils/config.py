@@ -37,3 +37,7 @@ PINECONE_UPSERT_BATCH = 100
 
 # Neon / Postgres
 NEON_DATABASE_URL = os.getenv("NEON_DATABASE_URL")
+
+# Groq LLM
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
