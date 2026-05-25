@@ -11,6 +11,7 @@ chromadb
 sentence-transformers
 transformers
 torch
+torchvision
 accelerate
 rank-bm25
 pypdf

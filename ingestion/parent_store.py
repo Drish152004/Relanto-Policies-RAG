@@ -115,3 +115,42 @@ def fetch_parent(parent_id: str) -> dict | None:
         "source_file",
     ]
     return dict(zip(keys, row))
+
+
+def fetch_parents_batch(parent_ids: list[str]) -> dict[str, dict]:
+    """Fetch multiple parent chunks by their IDs in a single SQL batch query."""
+    if not parent_ids:
+        return {}
+
+    query = """
+        SELECT parent_id, parent_text, policy_name, section_title,
+               sub_section_title, page, section_type, source_file
+        FROM parent_chunks
+        WHERE parent_id IN %s
+    """
+    
+    results = {}
+    keys = [
+        "parent_id",
+        "parent_text",
+        "policy_name",
+        "section_title",
+        "sub_section_title",
+        "page",
+        "section_type",
+        "source_file",
+    ]
+
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, (tuple(parent_ids),))
+                rows = cur.fetchall()
+                for row in rows:
+                    parent_dict = dict(zip(keys, row))
+                    results[row[0]] = parent_dict
+    except Exception as e:
+        logger.error("Error batch fetching parent chunks from PostgreSQL: %s", e)
+
+    return results
+

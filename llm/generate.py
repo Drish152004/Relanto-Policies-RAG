@@ -14,6 +14,7 @@ def generate_answer(
     query: str,
     contexts: list[dict],
     model: str = "llama-3.1-8b-instant",
+    system_prompt: str | None = None,
 ) -> str:
     """
     Generate a grounded answer based on query and retrieved contexts.
@@ -23,6 +24,7 @@ def generate_answer(
         contexts: List of dicts representing parent chunks, each containing
                   'parent_text', 'source_file', 'page', and 'section_title'.
         model: Groq chat model identifier.
+        system_prompt: Optional custom system prompt override.
         
     Returns:
         The generated answer string.
@@ -49,13 +51,13 @@ def generate_answer(
 
     context_str = "\n\n".join(formatted_contexts)
 
-    system_prompt = GROUNDED_QA_SYSTEM_PROMPT
+    active_system_prompt = system_prompt or GROUNDED_QA_SYSTEM_PROMPT
     user_prompt = GROUNDED_QA_USER_TEMPLATE.format(context=context_str, query=query)
 
     try:
         response = client.chat.completions.create(
             messages=[
-                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": active_system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
             model=model,
@@ -65,3 +67,4 @@ def generate_answer(
     except Exception as e:
         logger.error("Error generating answer: %s", e)
         return f"An error occurred while generating the answer: {e}"
+

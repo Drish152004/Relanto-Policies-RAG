@@ -24,11 +24,7 @@ def get_reranker() -> CrossEncoder | None:
     return _reranker
 
 
-def rerank_results(
-    query: str,
-    hits: list[dict],
-    top_n: int = 5,
-) -> list[dict]:
+def rerank_results(query: str, hits: list[dict], top_n: int = 5,) -> list[dict]:
     """
     Rerank candidate child chunks with BGE cross-encoder.
     

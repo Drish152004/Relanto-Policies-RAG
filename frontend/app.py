@@ -3,6 +3,12 @@
 from __future__ import annotations
 
 import os
+import sys
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import streamlit as st
 
 from llm.generate import generate_answer
@@ -144,14 +150,45 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+import logging
+logger = logging.getLogger(__name__)
+
 # Sidebar layout
 st.sidebar.image("https://img.icons8.com/nolan/96/artificial-intelligence.png", width=64)
 st.sidebar.markdown("### Configuration")
 
+@st.cache_resource
+def get_global_semantic_cache() -> SemanticRetrievalCache:
+    cache = SemanticRetrievalCache()
+    logger.info("Initializing global semantic cache and pre-seeding core FAQs...")
+    
+    faqs = [
+        "What are the rules for working from home?",
+        "What is the POSH policy?",
+        "What is the menstrual leave policy in Pune?",
+        "What does the medical insurance cover?",
+        "What is the appraisal and objective setting process?",
+        "What are the official company holiday list and leave policies?"
+    ]
+    
+    for faq in faqs:
+        try:
+            logger.info("Pre-seeding semantic cache for FAQ: %s", faq)
+            retrieve_context(
+                query=faq,
+                top_k=3,
+                semantic_cache=cache
+            )
+        except Exception as e:
+            logger.error("Failed to pre-seed FAQ '%s': %s", faq, e)
+            
+    return cache
+
 if "conversation_memory" not in st.session_state:
     st.session_state.conversation_memory = ConversationMemory()
-if "semantic_cache" not in st.session_state:
-    st.session_state.semantic_cache = SemanticRetrievalCache()
+
+global_cache = get_global_semantic_cache()
+
 
 # Dynamic list of raw PDF files for filtering
 available_files = []
@@ -184,9 +221,38 @@ model_option = st.sidebar.selectbox(
 st.markdown("<div class='main-title'>Relanto Policy Assistant</div>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>Instant, grounded answers across all company policies and employee guidelines</div>", unsafe_allow_html=True)
 
+# Session state to hold selected FAQ query
+if "selected_faq" not in st.session_state:
+    st.session_state.selected_faq = ""
+
+# Core FAQ suggestions matching document types
+FAQ_SUGGESTIONS = [
+    "What are the rules for working from home?",
+    "What is the POSH policy?",
+    "What is the menstrual leave policy in Pune?",
+    "What does the medical insurance cover?",
+    "What is the appraisal and objective setting process?",
+    "What are the official company holiday list and leave policies?"
+]
+
+st.markdown("<p style='font-size: 0.95rem; color: #94a3b8; font-weight: 500; margin-bottom: 0.3rem;'>💡 Warmed Policy FAQ Shortcuts (Instant Answers):</p>", unsafe_allow_html=True)
+faq_cols = st.columns(3)
+for idx, faq in enumerate(FAQ_SUGGESTIONS):
+    col_idx = idx % 3
+    if faq_cols[col_idx].button(faq, key=f"faq_btn_{idx}", use_container_width=True):
+        st.session_state.selected_faq = faq
+        st.rerun()
+
+# Determine default query
+default_query = ""
+if st.session_state.selected_faq:
+    default_query = st.session_state.selected_faq
+    st.session_state.selected_faq = ""
+
 # Main Query input
 query = st.text_input(
     "Search policies (e.g., 'What is the menstrual leave policy in Pune?' or 'What are the remote work rules?'):",
+    value=default_query,
     key="query_input",
     placeholder="Ask something...",
 )
@@ -200,8 +266,9 @@ if query:
             top_k=top_k,
             force_source_files=force_filters,
             memory=st.session_state.conversation_memory,
-            semantic_cache=st.session_state.semantic_cache,
+            semantic_cache=global_cache,
         )
+
 
         is_allowed = retrieval_results.get("allowed", True)
         if is_allowed:

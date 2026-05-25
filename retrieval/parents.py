@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from ingestion.parent_store import fetch_parent, get_connection
+from ingestion.parent_store import fetch_parent, fetch_parents_batch, get_connection
 
 logger = logging.getLogger(__name__)
 
@@ -23,32 +23,40 @@ def get_parent_contexts(hits: list[dict]) -> list[dict]:
     if not hits:
         return []
 
+    # Get unique parent IDs
+    parent_ids = []
+    seen = set()
+    for hit in hits:
+        pid = hit.get("parent_id")
+        if pid and pid not in seen:
+            seen.add(pid)
+            parent_ids.append(pid)
+
+    if not parent_ids:
+        return []
+
+    logger.info("Batch fetching %d parent chunks from PostgreSQL", len(parent_ids))
+    parents_map = fetch_parents_batch(parent_ids)
+
     seen_parents = set()
     parent_contexts = []
 
     for hit in hits:
         parent_id = hit.get("parent_id")
-        if not parent_id:
-            logger.warning("Child chunk hit missing parent_id: %s", hit)
+        if not parent_id or parent_id not in parents_map:
             continue
             
         if parent_id in seen_parents:
             continue
 
-        logger.info("Fetching parent chunk from Postgres: %s", parent_id)
-        try:
-            parent = fetch_parent(parent_id)
-            if parent:
-                seen_parents.add(parent_id)
-                # Keep track of the score that led to this parent retrieval
-                parent["score"] = hit.get("rerank_score") or hit.get("score") or 0.0
-                parent_contexts.append(parent)
-            else:
-                logger.warning("Parent chunk not found in Postgres: %s", parent_id)
-        except Exception as e:
-            logger.error("Error fetching parent chunk %s: %s", parent_id, e)
+        parent = dict(parents_map[parent_id]) # Copy to avoid side-effects
+        seen_parents.add(parent_id)
+        # Keep track of the score that led to this parent retrieval
+        parent["score"] = hit.get("rerank_score") or hit.get("score") or 0.0
+        parent_contexts.append(parent)
 
     return parent_contexts
+
 
 
 def keyword_search_parents(keywords: list[str], limit: int = 3) -> list[dict]:
