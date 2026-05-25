@@ -14,6 +14,7 @@ def search_children(
     query: str,
     top_k: int = 10,
     pinecone_filter: dict | None = None,
+    query_vector: list[float] | None = None,
 ) -> list[dict]:
     """
     Search child chunks in Pinecone using semantic similarity.
@@ -29,13 +30,13 @@ def search_children(
     if not query:
         return []
 
-    # Embed the query
-    logger.info("Embedding query: %s", query)
-    query_vectors = embed_texts([query])
-    if not query_vectors:
-        logger.error("Failed to generate query embedding.")
-        return []
-    query_vector = query_vectors[0]
+    if query_vector is None:
+        logger.info("Embedding query: %s", query)
+        query_vectors = embed_texts([query])
+        if not query_vectors:
+            logger.error("Failed to generate query embedding.")
+            return []
+        query_vector = query_vectors[0]
 
     # Get Pinecone index and query it
     index = get_index()

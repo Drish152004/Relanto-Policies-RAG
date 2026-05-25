@@ -6,6 +6,8 @@ import os
 import streamlit as st
 
 from llm.generate import generate_answer
+from retrieval.cache import SemanticRetrievalCache
+from retrieval.memory import ConversationMemory
 from retrieval.pipeline import retrieve_context
 from utils.config import DATA_RAW
 
@@ -146,6 +148,11 @@ st.markdown(
 st.sidebar.image("https://img.icons8.com/nolan/96/artificial-intelligence.png", width=64)
 st.sidebar.markdown("### Configuration")
 
+if "conversation_memory" not in st.session_state:
+    st.session_state.conversation_memory = ConversationMemory()
+if "semantic_cache" not in st.session_state:
+    st.session_state.semantic_cache = SemanticRetrievalCache()
+
 # Dynamic list of raw PDF files for filtering
 available_files = []
 if os.path.exists(DATA_RAW):
@@ -192,6 +199,8 @@ if query:
             query=query,
             top_k=top_k,
             force_source_files=force_filters,
+            memory=st.session_state.conversation_memory,
+            semantic_cache=st.session_state.semantic_cache,
         )
 
         is_allowed = retrieval_results.get("allowed", True)
@@ -199,7 +208,7 @@ if query:
             # 2. Trigger answer generation
             parent_contexts = retrieval_results["parent_contexts"]
             answer = generate_answer(
-                query=query,
+                query=retrieval_results.get("effective_query") or query,
                 contexts=parent_contexts,
                 model=model_option,
             )
@@ -238,6 +247,23 @@ if query:
         if is_allowed:
             st.markdown("<div class='diag-label'>Optimized Retrieval Query</div>", unsafe_allow_html=True)
             st.markdown(f"<div class='diag-val'><i>\"{retrieval_results['optimized_query']}\"</i></div>", unsafe_allow_html=True)
+
+            memory_context = retrieval_results.get("memory_context") or {}
+            if memory_context.get("resolved_from_memory"):
+                st.markdown("<div class='diag-label'>Conversation Memory</div>", unsafe_allow_html=True)
+                st.markdown(
+                    f"<div class='diag-val'>Follow-up resolved against: {memory_context.get('previous_topic', 'previous policy topic')}</div>",
+                    unsafe_allow_html=True,
+                )
+
+            st.markdown("<div class='diag-label'>Retrieval Cache</div>", unsafe_allow_html=True)
+            cache_status = "HIT" if retrieval_results.get("cache_hit") else "MISS"
+            cache_conf = float(retrieval_results.get("cache_confidence") or 0.0)
+            cache_type = retrieval_results.get("cache_match_type") or "miss"
+            st.markdown(
+                f"<div class='diag-val'><b>{cache_status}</b> ({cache_type}, confidence {cache_conf:.3f})</div>",
+                unsafe_allow_html=True,
+            )
             
             st.markdown("<div class='diag-label'>Extracted Technical Keywords</div>", unsafe_allow_html=True)
             keywords_html = " ".join([f"<span class='badge-primary'>{kw}</span>" for kw in retrieval_results["keywords"]])
