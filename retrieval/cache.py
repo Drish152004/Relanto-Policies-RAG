@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import math
 import re
 from dataclasses import dataclass, field
@@ -11,7 +12,10 @@ from typing import Any
 
 from ingestion.embedder import embed_texts
 
+logger = logging.getLogger(__name__)
+
 TOKEN_RE = re.compile(r"[a-z0-9]+")
+
 
 
 def normalize_query(query: str) -> str:
@@ -81,6 +85,9 @@ class SemanticRetrievalCache:
         Exact and lexical checks avoid embedding generation. Embedding is created
         only when the cheap checks do not find a strong reusable context.
         """
+        logger.info("----------------------------------------------------------------")
+        logger.info("[Semantic Cache] Initiating lookup for query: '%s'", query)
+        
         normalized = normalize_query(query)
         compatible = [
             entry
@@ -88,9 +95,14 @@ class SemanticRetrievalCache:
             if entry.filter_key == filter_key
             and int(entry.retrieval_result.get("candidate_pool_size", 0)) >= candidate_pool_size
         ]
+        
+        logger.info("[Semantic Cache] Found %d compatible candidates in session cache", len(compatible))
 
+        # 1. Try Exact Matching
+        logger.info("[Semantic Cache] Step 1: Trying Exact String Matching...")
         for entry in compatible:
             if normalize_query(entry.raw_query) == normalized:
+                logger.info("[Semantic Cache] -> 🟢 EXACT HIT! Reusing results for: '%s'", entry.raw_query)
                 return self._mark_hit(entry, "exact", 1.0), {
                     "cache_hit": True,
                     "cache_match_type": "exact",
@@ -98,14 +110,19 @@ class SemanticRetrievalCache:
                     "embedding_reused": True,
                 }, entry.query_vector
 
+        # 2. Try Lexical Matching
+        logger.info("[Semantic Cache] Step 2: Exact matching missed. Trying Lexical (SequenceMatcher) Matching...")
         best_lexical: tuple[CacheEntry, float] | None = None
         for entry in compatible:
             score = lexical_similarity(query, entry.raw_query)
+            logger.info("  - Comparing with '%s' | Lexical Similarity Score: %.3f", entry.raw_query, score)
             if best_lexical is None or score > best_lexical[1]:
                 best_lexical = (entry, score)
 
         if best_lexical and best_lexical[1] >= self.lexical_threshold:
             entry, score = best_lexical
+            logger.info("[Semantic Cache] -> 🟢 LEXICAL HIT! Score: %.3f >= Threshold: %.3f. Reusing: '%s'", 
+                        score, self.lexical_threshold, entry.raw_query)
             return self._mark_hit(entry, "lexical", score), {
                 "cache_hit": True,
                 "cache_match_type": "lexical",
@@ -113,9 +130,12 @@ class SemanticRetrievalCache:
                 "embedding_reused": True,
             }, entry.query_vector
 
+        # 3. Generating Embeddings (Cache Miss on quick checks)
+        logger.info("[Semantic Cache] Step 3: Exact & Lexical checks missed. Generating embedding vector for query...")
         vectors = embed_texts([query])
         query_vector = vectors[0] if vectors else None
         if query_vector is None:
+            logger.warning("[Semantic Cache] -> 🔴 FAILED to generate query embedding vector.")
             return None, {
                 "cache_hit": False,
                 "cache_match_type": "miss",
@@ -123,14 +143,19 @@ class SemanticRetrievalCache:
                 "embedding_reused": False,
             }, None
 
+        # 4. Try Semantic Similarity (Cosine Similarity)
+        logger.info("[Semantic Cache] Step 4: Trying Semantic Matching (Cosine Similarity of vectors)...")
         best_semantic: tuple[CacheEntry, float] | None = None
         for entry in compatible:
             score = cosine_similarity(query_vector, entry.query_vector)
+            logger.info("  - Comparing with '%s' | Cosine Similarity Score: %.3f", entry.raw_query, score)
             if best_semantic is None or score > best_semantic[1]:
                 best_semantic = (entry, score)
 
         if best_semantic and best_semantic[1] >= self.similarity_threshold:
             entry, score = best_semantic
+            logger.info("[Semantic Cache] -> 🟢 SEMANTIC HIT! Score: %.3f >= Threshold: %.3f. Reusing: '%s'", 
+                        score, self.similarity_threshold, entry.raw_query)
             return self._mark_hit(entry, "semantic", score), {
                 "cache_hit": True,
                 "cache_match_type": "semantic",
@@ -138,12 +163,16 @@ class SemanticRetrievalCache:
                 "embedding_reused": False,
             }, query_vector
 
+        logger.info("[Semantic Cache] -> 🔴 CACHE MISS. Semantic Score: %.3f < Threshold: %.3f. Triggering full RAG pipeline...", 
+                    best_semantic[1] if best_semantic else 0.0, self.similarity_threshold)
+        logger.info("----------------------------------------------------------------")
         return None, {
             "cache_hit": False,
             "cache_match_type": "miss",
             "cache_confidence": best_semantic[1] if best_semantic else 0.0,
             "embedding_reused": False,
         }, query_vector
+
 
     def store(
         self,

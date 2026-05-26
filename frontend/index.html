@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relanto Policy Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Base page variables and premium resets */
+        :root {
+            --bg-color: #fcfdfe;
+            --card-bg: #ffffff;
+            --border-color: #edf2f7;
+            --text-main: #000000;
+            --text-muted: #718096;
+            --primary-accent: #3b82f6;
+            --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.02);
+            --transition-speed: 0.25s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Header Styles --- */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 4rem;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-bold {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+        }
+
+        .logo-sub {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: var(--text-muted);
+            margin-left: 0.4rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 2.2rem;
+        }
+
+        .tab-link {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding-bottom: 0.5rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .tab-link:hover {
+            color: var(--text-main);
+        }
+
+        .tab-link.active {
+            color: var(--text-main);
+            font-weight: 600;
+            border-bottom: 2px solid var(--text-main);
+        }
+
+        .profile-container {
+            font-size: 1.35rem;
+            color: #4a5568;
+            cursor: pointer;
+        }
+
+        /* --- Content Layout Wrapper --- */
+        .main-content {
+            flex: 1;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Transition layouts definitions */
+        .view-section {
+            display: none;
+            animation: fadeIn var(--transition-speed) ease-in-out forwards;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- STATE 1: Hero Search Layout --- */
+        .hero-section {
+            text-align: center;
+            margin-top: 3.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .hero-title {
+            font-size: 2.85rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 0.8rem;
+        }
+
+        .hero-subtitle {
+            color: #4a5568;
+            font-size: 1.05rem;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+        /* Search input bar custom design */
+        .search-container {
+            max-width: 780px;
+            margin: 0 auto 3rem auto;
+            background-color: var(--card-bg);
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 0.35rem;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+        }
+
+        .search-icon {
+            padding: 0 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 0.95rem;
+            padding: 0.6rem 0.2rem;
+            color: var(--text-main);
+        }
+
+        .search-btn {
+            background-color: #000000;
+            color: #ffffff;
+            border: none;
+            padding: 0.65rem 1.6rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+        }
+
+        .search-btn:hover {
+            opacity: 0.85;
+        }
+
+        /* Suggestion cards layout */
+        .suggestions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.25rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .suggestion-card {
+            background-color: var(--card-bg);
+            border: 1px solid #edf2f7;
+            border-radius: 8px;
+            padding: 1.25rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .suggestion-card:hover {
+            border-color: #cbd5e0;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.03);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 0.35rem;
+            color: #1a202c;
+        }
+
+        .card-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.45;
+        }
+
+        /* --- STATE 2: Conversational Detail Layout --- */
+        .chat-result-section {
+            max-width: 820px;
+            margin: 0 auto;
+            padding-bottom: 8rem;
+        }
+
+        .question-header {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            margin-top: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .profile-bubble {
+            background-color: #ebf8ff;
+            color: #2b6cb0;
+            width: 2.2rem;
+            height: 2.2rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .question-text {
+            font-size: 1.55rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+        }
+
+        .answer-container {
+            display: flex;
+            gap: 1.1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .ai-spark-bubble {
+            background-color: #1a202c;
+            color: #ffffff;
+            width: 2.2rem;
+            height: 2.2rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .answer-body {
+            flex: 1;
+            font-size: 1rem;
+            line-height: 1.65;
+            color: #2d3748;
+        }
+
+        .answer-body p {
+            margin-bottom: 1.2rem;
+        }
+
+        .answer-list {
+            margin-left: 0.2rem;
+            margin-bottom: 1.5rem;
+            list-style: none;
+        }
+
+        .answer-list-item {
+            position: relative;
+            padding-left: 1.8rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        .answer-list-item::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: var(--primary-accent);
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        /* tinted note container callout styling */
+        .callout-box {
+            background-color: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 1rem 1.25rem;
+            font-size: 0.85rem;
+            font-style: italic;
+            color: #4a5568;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        /* Cited sources segment */
+        .sources-heading {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #a0aec0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .sources-divider {
+            border-top: 1px solid #e2e8f0;
+            margin-bottom: 1.25rem;
+        }
+
+        .sources-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.25rem;
+            margin-bottom: 3rem;
+        }
+
+        .source-doc-card {
+            background-color: #f8fafc;
+            border: 1px solid #edf2f7;
+            border-radius: 6px;
+            padding: 1.1rem;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .source-doc-card:hover {
+            border-color: #cbd5e0;
+            background-color: #edf2f7;
+        }
+
+        .source-doc-meta {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #a0aec0;
+            margin-bottom: 0.3rem;
+        }
+
+        .source-doc-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 0.2rem;
+        }
+
+        .source-doc-sec {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* --- STATE 3: All Documents View --- */
+        .documents-list-section {
+            max-width: 820px;
+            margin: 2rem auto;
+        }
+
+        .documents-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .documents-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .doc-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1.1rem 1.5rem;
+            margin-bottom: 0.75rem;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .doc-item-title {
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        .doc-view-btn {
+            background-color: #000000;
+            color: #ffffff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        /* --- Follow-up Bottom Input Bar --- */
+        .followup-fixed-bar {
+            position: fixed;
+            bottom: 2.8rem;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(180deg, rgba(252,253,254,0) 0%, rgba(252,253,254,1) 40%);
+            padding: 1.5rem 0;
+            z-index: 900;
+        }
+
+        .followup-container {
+            max-width: 820px;
+            margin: 0 auto;
+            background-color: var(--card-bg);
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 0.35rem;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 20px -3px rgba(0, 0, 0, 0.05);
+        }
+
+        .followup-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 0.95rem;
+            padding: 0.65rem 0.8rem;
+        }
+
+        .mic-icon {
+            padding: 0 1rem;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .followup-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 0.7rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .followup-links span {
+            cursor: pointer;
+            transition: color 0.15s ease;
+        }
+
+        .followup-links span:hover {
+            color: var(--text-main);
+        }
+
+        /* Loading indicator styling */
+        .loading-shimmer {
+            font-style: italic;
+            color: var(--text-muted);
+            animation: breathe 1.5s infinite;
+        }
+
+        @keyframes breathe {
+            0% { opacity: 0.4; }
+            50% { opacity: 0.9; }
+            100% { opacity: 0.4; }
+        }
+
+        /* --- Footer Styles --- */
+        .app-footer {
+            background-color: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.95rem 4rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            position: relative;
+            z-index: 1000;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            margin-left: 1.5rem;
+            transition: color 0.15s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="app-header">
+        <div class="logo-container">
+            <span class="logo-bold">Relanto</span>
+            <span class="logo-sub">Policy Assistant</span>
+        </div>
+        <nav class="nav-tabs">
+            <span class="tab-link active" onclick="switchTab('Chat')">Chat</span>
+            <span class="tab-link" onclick="switchTab('All Documents')">All Documents</span>
+        </nav>
+        <div class="profile-container">👤</div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-content">
+
+        <!-- VIEW 1: Chat Dashboard (Default view) -->
+        <section id="chat-dashboard-view" class="view-section active">
+            
+            <!-- Hero Titles -->
+            <div class="hero-section">
+                <h1 class="hero-title">How can I help you today?</h1>
+                <p class="hero-subtitle">Search through Relanto's internal policies, compliance guides, and employee handbooks using natural language.</p>
+            </div>
+
+            <!-- Centered Search bar -->
+            <div class="search-wrapper">
+                <form onsubmit="handleQuerySubmit(event); return false;" class="search-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="main-search-input" class="search-input" placeholder="Ask a question about company policies..." required>
+                    <button type="submit" class="search-btn">Search</button>
+                </form>
+            </div>
+
+            <!-- Suggestions Grid -->
+            <div class="suggestions-grid">
+                <div class="suggestion-card" onclick="submitPreSeededQuery('What is the vacation policy for senior associates?')">
+                    <div class="card-header"><span class="card-icon">⛱️</span> Time Off</div>
+                    <div class="card-desc">"What is the vacation policy for senior associates?"</div>
+                </div>
+                <div class="suggestion-card" onclick="submitPreSeededQuery('How do I submit an expense report for travel?')">
+                    <div class="card-header"><span class="card-icon">💳</span> Expenses</div>
+                    <div class="card-desc">"How do I submit an expense report for travel?"</div>
+                </div>
+                <div class="suggestion-card" onclick="submitPreSeededQuery('What are our data handling protocols for client PII?')">
+                    <div class="card-header"><span class="card-icon">🛡️</span> Privacy</div>
+                    <div class="card-desc">"What are our data handling protocols for client PII?"</div>
+                </div>
+                <div class="suggestion-card" onclick="submitPreSeededQuery('Can I request a standing desk through HR?')">
+                    <div class="card-header"><span class="card-icon">💻</span> Equipment</div>
+                    <div class="card-desc">"Can I request a standing desk through HR?"</div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- VIEW 2: Chat Conversational Result View -->
+        <section id="chat-result-view" class="view-section">
+            <div class="chat-result-section">
+                
+                <!-- Query Header -->
+                <div class="question-header">
+                    <div class="profile-bubble">👤</div>
+                    <div class="question-text" id="asked-question-text">Asked Question...</div>
+                </div>
+
+                <!-- Answer Content -->
+                <div class="answer-container">
+                    <div class="ai-spark-bubble">✨</div>
+                    <div class="answer-body" id="answer-body-content">
+                        <!-- Filled by API dynamically -->
+                    </div>
+                </div>
+
+                <!-- Sources Segment -->
+                <div class="sources-segment" id="sources-container" style="display: none;">
+                    <div class="sources-heading">📚 Sources</div>
+                    <div class="sources-divider"></div>
+                    <div class="sources-cards-grid" id="sources-cards-grid">
+                        <!-- Filled dynamically -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Follow-up bar -->
+            <div class="followup-fixed-bar">
+                <form onsubmit="handleFollowupSubmit(event); return false;" class="followup-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="followup-search-input" class="followup-input" placeholder="Ask another question about company policies..." required>
+                    <span class="mic-icon">🎤</span>
+                    <button type="submit" class="search-btn">Ask</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- VIEW 3: All Documents View -->
+        <section id="documents-view" class="view-section">
+            <div class="documents-list-section">
+                <h2 class="documents-title">📂 Internal Policy Documents</h2>
+                <p class="documents-subtitle">Listed below are all policy documents, compliance registers, and employee handbooks parsed into the Policy Assistant context.</p>
+                <div id="documents-list-container">
+                    <div class="loading-shimmer">Loading policies...</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div>
+            <strong>Relanto</strong> &nbsp;© 2024 Relanto. For internal policy reference only.
+        </div>
+        <div class="footer-links">
+            <a href="#" target="_blank">Privacy Policy</a>
+            <a href="#" target="_blank">Terms of Service</a>
+            <a href="#" target="_blank">Compliance Portal</a>
+        </div>
+    </footer>
+
+    <script>
+        // Tab switching controller
+        function switchTab(tabName) {
+            const tabs = document.querySelectorAll('.tab-link');
+            tabs.forEach(t => t.classList.remove('active'));
+
+            // Reset layouts
+            document.getElementById('chat-dashboard-view').classList.remove('active');
+            document.getElementById('chat-result-view').classList.remove('active');
+            document.getElementById('documents-view').classList.remove('active');
+
+            if (tabName === 'Chat') {
+                tabs[0].classList.add('active');
+                // Return to dashboard or results based on whether a question is currently active
+                const askedText = document.getElementById('asked-question-text').innerText;
+                if (askedText && askedText !== 'Asked Question...') {
+                    document.getElementById('chat-result-view').classList.add('active');
+                } else {
+                    document.getElementById('chat-dashboard-view').classList.add('active');
+                }
+            } else if (tabName === 'All Documents') {
+                tabs[1].classList.add('active');
+                document.getElementById('documents-view').classList.add('active');
+                loadDocumentsList();
+            }
+        }
+
+        // Submitting query through API
+        async function fetchAnswer(queryText) {
+            // Setup Loading Shimmer
+            document.getElementById('chat-dashboard-view').classList.remove('active');
+            document.getElementById('chat-result-view').classList.add('active');
+            
+            document.getElementById('asked-question-text').innerText = queryText;
+            document.getElementById('answer-body-content').innerHTML = `
+                <div class="loading-shimmer">Thinking and checking company guidelines...</div>
+            `;
+            document.getElementById('sources-container').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: queryText })
+                });
+
+                if (!response.ok) {
+                    throw new Error('API server returned an error');
+                }
+
+                const data = await response.json();
+                renderAnswer(data);
+            } catch (err) {
+                document.getElementById('answer-body-content').innerHTML = `
+                    <p style="color: #e53e3e; font-weight: 500;">Failed to fetch response: ${err.message}. Make sure your FastAPI backend is running.</p>
+                `;
+            }
+        }
+
+        // Helper to parse double-asterisk bold markings into HTML bold tags
+        function formatMarkdownBold(text) {
+            return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        }
+
+        // Render response dynamically
+        function renderAnswer(data) {
+            const container = document.getElementById('answer-body-content');
+            
+            // Format answer with bold tags and lists
+            let formatted = formatMarkdownBold(data.answer);
+            
+            // Render nice bullet checkmarks if we detect bullet formatting from LLM
+            let parts = formatted.split('\n');
+            let parsedHtml = '';
+            let inList = false;
+
+            parts.forEach(part => {
+                let trimmed = part.trim();
+                if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('✓') || (trimmed.match(/^\d+\./))) {
+                    if (!inList) {
+                        parsedHtml += '<ul class="answer-list">';
+                        inList = true;
+                    }
+                    // Strip indicator
+                    let cleaned = trimmed.replace(/^[-•✓\d+\.]\s*/, '');
+                    parsedHtml += `<li class="answer-list-item">${cleaned}</li>`;
+                } else {
+                    if (inList) {
+                        parsedHtml += '</ul>';
+                        inList = false;
+                    }
+                    if (trimmed) {
+                        // Detect warning or note templates and place them in the styled callout box
+                        if (trimmed.toLowerCase().includes('note:') || trimmed.toLowerCase().includes('warning:')) {
+                            parsedHtml += `<div class="callout-box">${trimmed}</div>`;
+                        } else {
+                            parsedHtml += `<p>${trimmed}</p>`;
+                        }
+                    }
+                }
+            });
+            if (inList) parsedHtml += '</ul>';
+
+            container.innerHTML = parsedHtml;
+
+            // Sources List Rendering
+            const sourcesContainer = document.getElementById('sources-container');
+            const grid = document.getElementById('sources-cards-grid');
+            grid.innerHTML = '';
+
+            if (data.sources && data.sources.length > 0) {
+                sourcesContainer.style.display = 'block';
+                data.sources.forEach(src => {
+                    grid.innerHTML += `
+                        <div class="source-doc-card" onclick="viewDocument('${src.raw_filename}')" title="Click to view full PDF document">
+                            <div class="source-doc-meta">${src.doc_id}</div>
+                            <div class="source-doc-title">📄 ${src.source_file}</div>
+                            <div class="source-doc-sec">${src.section_title} &nbsp;•&nbsp; Page ${src.page}</div>
+                        </div>
+                    `;
+                });
+            }
+
+        }
+
+        // Handles manual input submission
+        function handleQuerySubmit(event) {
+            event.preventDefault();
+            const input = document.getElementById('main-search-input');
+            const val = input.value.trim();
+            if (val) {
+                fetchAnswer(val);
+                input.value = '';
+            }
+        }
+
+        // Handles follow-up input submission
+        function handleFollowupSubmit(event) {
+            event.preventDefault();
+            const input = document.getElementById('followup-search-input');
+            const val = input.value.trim();
+            if (val) {
+                fetchAnswer(val);
+                input.value = '';
+            }
+        }
+
+        // Click suggestions cards helper
+        function submitPreSeededQuery(queryText) {
+            fetchAnswer(queryText);
+        }
+
+        // Stream or preview document in a new tab
+        function viewDocument(filename) {
+            window.open(`/api/document/${encodeURIComponent(filename)}`, '_blank');
+        }
+
+        // Load files list on tab click
+        async function loadDocumentsList() {
+            const container = document.getElementById('documents-list-container');
+            container.innerHTML = '<div class="loading-shimmer">Scanning policy repository...</div>';
+
+            try {
+                const response = await fetch('/api/documents');
+                if (!response.ok) throw new Error('Failed to load documents');
+                
+                const data = await response.json();
+                container.innerHTML = '';
+
+                if (data.documents && data.documents.length > 0) {
+                    data.documents.forEach(doc => {
+                        container.innerHTML += `
+                            <div class="doc-item-row">
+                                <span class="doc-item-title">📄 ${doc}</span>
+                                <button class="doc-view-btn" onclick="viewDocument('${doc}')">📂 Open Document</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    container.innerHTML = '<p style="color: var(--text-muted);">No documents found in raw repository.</p>';
+                }
+            } catch (err) {
+                container.innerHTML = `<p style="color: #e53e3e;">Failed to load documents: ${err.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
