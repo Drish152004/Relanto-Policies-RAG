@@ -6,40 +6,9 @@
 
 ## 🧭 System-Wide Architecture & Flow
 
-This diagram illustrates the complete end-to-end request lifecycle from the moment a user types a query into the front-end interface, through the security guardrails, optimization, vector retrieval, cross-encoder reranking, and final database context hydration.
+This flowchart illustrates the complete end-to-end request lifecycle and detailed semantic caching subsystem:
 
-```mermaid
-graph TD
-    User([User Query]) --> Guardrail{1. Pre-Retrieval Guardrails}
-    
-    %% Guardrail Decisions
-    Guardrail -- Unsafe/Irrelevant --> Blocked[Direct Safety Response]
-    Guardrail -- Injection Detected but contains Policy Keywords --> Fallback[2. SQL Fallback Keyword Search]
-    Guardrail -- Safe & Policy-Relevant --> CacheLookup{3. Semantic Cache Lookup}
-    
-    %% SQL Fallback Flow
-    Fallback --> NeonSQL[(Neon PostgreSQL)]
-    NeonSQL --> SafeResponse([Grounded Safe Answer])
-    
-    %% Cache Hits
-    CacheLookup -- Exact / Lexical / Semantic Hit --> LLM[5. Groq LLM Grounded Answer Generation]
-    CacheLookup -- Cache Miss --> Embed[4. Query Embeddings BGE]
-    
-    %% Search Flow
-    Embed --> Router[5. Metadata Route Filtering]
-    Router --> Pinecone[(Pinecone Vector Store)]
-    Pinecone --> Rerank[6. BGE Cross-Encoder Reranking]
-    Rerank --> Hydration[7. Neon PostgreSQL Context Hydration]
-    Hydration --> StoreCache[8. Store in Session Cache]
-    StoreCache --> LLM
-    LLM --> UIResponse([Warm, Friendly User Response])
-
-    style Guardrail fill:#f9f,stroke:#333,stroke-width:2px
-    style CacheLookup fill:#bbf,stroke:#333,stroke-width:2px
-    style Fallback fill:#ffd,stroke:#333,stroke-width:1px
-    style Pinecone fill:#dfd,stroke:#333,stroke-width:1px
-    style NeonSQL fill:#dfd,stroke:#333,stroke-width:1px
-```
+![Relanto RAG Pipeline & Semantic Caching Infographic Flowchart](file:///C:/Users/Relanto/.gemini/antigravity-ide/brain/4cdb0a8d-bb91-453c-8f5d-738096c8df72/rag_system_flowchart_1779868848635.png)
 
 ---
 
