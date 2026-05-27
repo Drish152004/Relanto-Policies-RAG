@@ -53,8 +53,8 @@ def retrieve_context(
 
     guardrail = validate_query(query, document_metadata=document_metadata)
     if not guardrail["allowed"]:
-        # If the question is asked within the RAG context, fallback to direct SQL keyword matching
-        if is_query_in_rag_context(query):
+        # Fallback is only allowed for low-risk relevance blocks, never for high-risk security blocks (like PII or injection attempts)
+        if is_query_in_rag_context(query) and guardrail.get("risk_type") not in ("pii", "prompt_injection", "jailbreak", "sensitive_data", "harmful"):
             logger.info("Blocked query contains policy keywords. Redirecting to SQL Keyword search fallback.")
             kws = extract_policy_keywords(query)
             parent_contexts = keyword_search_parents(kws, limit=top_k)

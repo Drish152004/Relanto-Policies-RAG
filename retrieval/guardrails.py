@@ -24,6 +24,19 @@ def validate_query(query: str, document_metadata: str = "") -> dict:
               and 'sanitized_query' (str).
     """
     logger.info("Executing guardrail validation check for query: %s", query)
+    
+    # Fast local deterministic check for sensitive salary and compensation terms
+    query_lower = query.lower()
+    sensitive_terms = {"salary", "salaries", "compensation", "paycheck", "payroll", "ctc", "wage", "wages", "remuneration", "stipend"}
+    if any(term in query_lower for term in sensitive_terms):
+        logger.warning("Query blocked by local guardrail (PII/Salary term detected): %s", query)
+        return {
+            "allowed": False,
+            "risk_type": "pii",
+            "reason": "PII request: Inquiries about employee salaries, compensation, or personal financial details are strictly prohibited.",
+            "sanitized_query": "",
+        }
+
     client = get_groq_client()
 
     system_prompt = GUARDRAIL_SYSTEM_PROMPT

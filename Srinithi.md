@@ -46,30 +46,25 @@ To maximize performance, reduce API costs, and guarantee sub-second responses, a
 
 ### The Caching Workflow
 
-```mermaid
-graph TD
-    Start[New Safe Query] --> Normalization[Normalize Query Text<br/>lowercase & remove punctuation]
-    Normalization --> Compatible[Filter Cache Candidates<br/>Matching Metadata Filter & Pool Size]
-    
-    %% Tier 1
-    Compatible --> ExactCheck{Tier 1: Exact Match?}
-    ExactCheck -- Yes --> ExactHit[🟢 EXACT HIT<br/>0.0ms delay | No API cost | No Embed Cost] --> Return[Return Cached Contexts]
-    
-    %% Tier 2
-    ExactCheck -- No --> LexicalCheck{Tier 2: Lexical Similarity?}
-    LexicalCheck -- Score >= 0.92 --> LexicalHit[🟢 LEXICAL HIT<br/>Fast diff/token match | No Embed Cost] --> Return
-    
-    %% Tier 3
-    LexicalCheck -- Score < 0.92 --> GenerateEmbed[Generate Query Embedding<br/>via BGE model]
-    GenerateEmbed --> SemanticCheck{Tier 3: Cosine Similarity?}
-    SemanticCheck -- Score >= 0.90 --> SemanticHit[🟢 SEMANTIC HIT<br/>Vector comparison match] --> Return
-    
-    %% Cache Miss
-    SemanticCheck -- Score < 0.90 --> Miss[🔴 CACHE MISS<br/>Run full RAG pipeline]
-    Miss --> RunRAG[Fetch Context from Pinecone + PostgreSQL]
-    RunRAG --> StoreCache[Store Query, Vector, & Results in Cache]
-    StoreCache --> Return
-```
+                              STAGE 1: RETRIEVAL (Fast but Shallow)
+                              ┌──────────────────────────────────┐
+                              │     Pinecone Vector Search       │  ◄── Matches vectors using cosine similarity
+                              │   Retrieves candidate_pool=20    │      (Fast, scales to millions of chunks)
+                              └────────────────┬─────────────────┘
+                                               │
+                                               ▼
+                              STAGE 2: RERANKING (Slow but Deep)
+                              ┌──────────────────────────────────┐
+                              │     BGE Cross-Encoder Rerank     │  ◄── Models query-text token interactions
+                              │      Selects top_n = 3 or 5      │      (Slow, only run on retrieved top 20)
+                              └────────────────┬─────────────────┘
+                                               │
+                                               ▼
+                              STAGE 3: GROUNDING (Generative Answer)
+                              ┌──────────────────────────────────┐
+                              │         LLM Answer Gen           │  ◄── Uses exact high-confidence matches
+                              └──────────────────────────────────┘
+
 
 ### The Three Tiers Explained
 
