@@ -100,6 +100,14 @@ def route_query(query: str, keywords: list[str]) -> list[str]:
         
         "handbook": ["Relanto Employee Handbook Jan 24 _ V 1.2_2025.pdf"],
         "employee handbook": ["Relanto Employee Handbook Jan 24 _ V 1.2_2025.pdf"],
+        "maternity": ["Relanto Employee Handbook Jan 24 _ V 1.2_2025.pdf"],
+        "metarnetity": ["Relanto Employee Handbook Jan 24 _ V 1.2_2025.pdf"],
+        "metranity": ["Relanto Employee Handbook Jan 24 _ V 1.2_2025.pdf"],
+        "maternety": ["Relanto Employee Handbook Jan 24 _ V 1.2_2025.pdf"],
+        "paternity": ["Relanto Employee Handbook Jan 24 _ V 1.2_2025.pdf"],
+        "parental": ["Relanto Employee Handbook Jan 24 _ V 1.2_2025.pdf"],
+        "vacation": ["Relanto Employee Handbook Jan 24 _ V 1.2_2025.pdf"],
+        "holiday": ["Relanto Employee Handbook Jan 24 _ V 1.2_2025.pdf"],
     }
 
     matched_files = set()
@@ -114,5 +122,14 @@ def route_query(query: str, keywords: list[str]) -> list[str]:
         for key, files in mapping.items():
             if key in kw or kw in key:
                 matched_files.update(files)
+
+    # Heuristic post-filtering to resolve typo or LLM over-expansion between Maternity and Menstrual leaves
+    is_maternity_query = any(term in query_lower for term in ["matern", "metarn", "metran", "parental", "patern"])
+    is_menstrual_query = any(term in query_lower for term in ["menstru", "period"])
+
+    if is_maternity_query and not is_menstrual_query:
+        matched_files.discard("Menstrual.pdf")
+    elif is_menstrual_query and not is_maternity_query:
+        matched_files.discard("Relanto Employee Handbook Jan 24 _ V 1.2_2025.pdf")
 
     return list(matched_files)

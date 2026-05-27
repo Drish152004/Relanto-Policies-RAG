@@ -764,12 +764,35 @@
 
             if (data.sources && data.sources.length > 0) {
                 sourcesContainer.style.display = 'block';
+                
+                // Group citations by source document
+                const groupedSources = {};
                 data.sources.forEach(src => {
+                    const key = src.source_file;
+                    if (!groupedSources[key]) {
+                        groupedSources[key] = {
+                            doc_id: src.doc_id,
+                            source_file: src.source_file,
+                            raw_filename: src.raw_filename,
+                            citations: []
+                        };
+                    }
+                    groupedSources[key].citations.push(src);
+                });
+
+                // Render each unified document card
+                Object.values(groupedSources).forEach(doc => {
+                    // Extract unique section titles
+                    const uniqueSections = [...new Set(doc.citations.map(c => c.section_title))];
+                    
+                    // Format citation details
+                    const citationDetails = uniqueSections.join('<br>');
+
                     grid.innerHTML += `
-                        <div class="source-doc-card" onclick="viewDocument('${src.raw_filename}')" title="Click to view full PDF document">
-                            <div class="source-doc-meta">${src.doc_id}</div>
-                            <div class="source-doc-title">📄 ${src.source_file}</div>
-                            <div class="source-doc-sec">${src.section_title} &nbsp;•&nbsp; Page ${src.page}</div>
+                        <div class="source-doc-card" onclick="viewDocument('${doc.raw_filename}')" title="Click to view full PDF document">
+                            <div class="source-doc-meta">${doc.doc_id}</div>
+                            <div class="source-doc-title">📄 ${doc.source_file}</div>
+                            <div class="source-doc-sec" style="margin-top: 0.4rem; line-height: 1.4;">${citationDetails}</div>
                         </div>
                     `;
                 });

@@ -43,8 +43,15 @@ def retrieve_context(
     """
     logger.info("Executing retrieval pipeline for query: %s", query)
 
-    # 0. Execute AI Security Guardrail Validation Check
-    guardrail = validate_query(query)
+    # 0. Execute AI Security Guardrail Validation Check with active session context
+    document_metadata = ""
+    if memory is not None:
+        latest = memory.latest_turn()
+        if latest:
+            policy_hint = latest.semantic_intent or latest.effective_query or latest.user_query
+            document_metadata = f"Active session conversation topic: {policy_hint}."
+
+    guardrail = validate_query(query, document_metadata=document_metadata)
     if not guardrail["allowed"]:
         # If the question is asked within the RAG context, fallback to direct SQL keyword matching
         if is_query_in_rag_context(query):
@@ -96,7 +103,7 @@ def retrieve_context(
         source_files = force_source_files
         logger.info("Overriding router. Using forced source files: %s", source_files)
     else:
-        source_files = route_query(effective_query, keywords)
+        source_files = route_query(optimized_query, keywords)
         logger.info("Router identified matching source files: %s", source_files)
 
     # 3. Build the Pinecone metadata filter

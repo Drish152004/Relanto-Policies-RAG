@@ -50,10 +50,9 @@ async def preseed_cache_task():
         "What are the official company holiday list and leave policies?"
         
         # Core UI suggestion grid queries
-        "What is the vacation policy for senior associates?",
+        "What is the vacation policy??",
         "How do I submit an expense report for travel?",
         "What are our data handling protocols for client PII?",
-        "Can I request a standing desk through HR?",
     ]
     for faq in faqs:
         try:
