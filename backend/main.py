@@ -40,11 +40,7 @@ import asyncio
 async def preseed_cache_task():
     logger.info("Initializing global semantic cache and pre-seeding core FAQs in the background...")
     faqs = [
-        # Core UI suggestion grid queries
-        "What is the vacation policy for senior associates?",
-        "How do I submit an expense report for travel?",
-        "What are our data handling protocols for client PII?",
-        "Can I request a standing desk through HR?",
+        
         # Other standard queries
         "What are the rules for working from home?",
         "What is the POSH policy?",
@@ -52,6 +48,12 @@ async def preseed_cache_task():
         "What does the medical insurance cover?",
         "What is the appraisal and objective setting process?",
         "What are the official company holiday list and leave policies?"
+        
+        # Core UI suggestion grid queries
+        "What is the vacation policy for senior associates?",
+        "How do I submit an expense report for travel?",
+        "What are our data handling protocols for client PII?",
+        "Can I request a standing desk through HR?",
     ]
     for faq in faqs:
         try:
